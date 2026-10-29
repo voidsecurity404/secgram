@@ -1396,6 +1396,14 @@ void Stories::toggleHidden(
 void Stories::sendMarkAsReadRequest(
 		not_null<PeerData*> peer,
 		StoryId tillId) {
+	if (SecGram::GhostStories()) {
+		// Nothing is sent, so nothing is registered: calling finish() here
+		// would re-enter sendMarkAsReadRequests() while the caller still
+		// holds this peer in _markReadPending, recursing until the stack
+		// overflows.
+		checkQuitPreventFinished();
+		return;
+	}
 	const auto peerId = peer->id;
 	_markReadRequests.emplace(peerId);
 	const auto finish = [=] {
@@ -1408,10 +1416,6 @@ void Stories::sendMarkAsReadRequest(
 	};
 
 	const auto api = &_owner->session().api();
-	if (SecGram::GhostStories()) {
-		finish();
-		return;
-	}
 	api->request(MTPstories_ReadStories(
 		peer->input(),
 		MTP_int(tillId)
@@ -1464,6 +1468,11 @@ void Stories::sendIncrementViewsRequests() {
 
 	const auto api = &_owner->session().api();
 	for (auto &[peer, ids] : prepared) {
+		if (SecGram::GhostStories()) {
+			// Ghost mode: the views are never reported to the author.
+			_incrementViewsPending.remove(peer);
+			continue;
+		}
 		_incrementViewsRequests.emplace(peer);
 		const auto finish = [=, peer = peer] {
 			_incrementViewsRequests.remove(peer);
@@ -1473,16 +1482,13 @@ void Stories::sendIncrementViewsRequests() {
 			}
 			checkQuitPreventFinished();
 		};
-		if (SecGram::GhostStories()) {
-			crl::on_main(this, finish);
-		} else {
-			api->request(MTPstories_IncrementStoryViews(
-				_owner->peer(peer)->input(),
-				MTP_vector<MTPint>(std::move(ids))
-			)).done(finish).fail(finish).send();
-		}
+		api->request(MTPstories_IncrementStoryViews(
+			_owner->peer(peer)->input(),
+			MTP_vector<MTPint>(std::move(ids))
+		)).done(finish).fail(finish).send();
 		_incrementViewsPending.remove(peer);
 	}
+	checkQuitPreventFinished();
 }
 
 void Stories::loadViewsSlice(
