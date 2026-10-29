@@ -62,6 +62,7 @@ optionsList = [
     'qt5',
     'qt6',
     'skip-release',
+    'skip-breakpad', # SecGram: crash reports are disabled.
     'build-stackwalk',
     'qt-asserts',
 ]
@@ -333,6 +334,8 @@ def filterByPlatform(commands):
     return [result, dependencies, version]
 
 def stage(name, commands, location = 'Libraries'):
+    if name == 'breakpad' and 'skip-breakpad' in options:
+        return
     if location == 'Libraries':
         directory = libsDir
     elif location == 'ThirdParty':
