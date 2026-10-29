@@ -1,0 +1,11 @@
+#!/bin/sh
+# SecGram launcher: keeps its data apart from the official Telegram Desktop.
+DATA="${XDG_DATA_HOME:-$HOME/.local/share}/SecGram/"
+mkdir -p "$DATA"
+for dir in /opt/secgram "$(dirname "$(readlink -f "$0")")"; do
+	if [ -x "$dir/SecGram" ]; then
+		exec "$dir/SecGram" -workdir "$DATA" "$@"
+	fi
+done
+echo "SecGram binary not found" >&2
+exit 1

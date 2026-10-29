@@ -1,0 +1,20 @@
+# Maintainer: SecGram
+pkgname=secgram-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Telegram Desktop with security tools for SOC/CERT and privacy"
+arch=('x86_64')
+url="https://github.com/voidsecurity404/secgram"
+license=('GPL-3.0-or-later')
+depends=('glib2' 'fontconfig' 'freetype2' 'libx11' 'libxcb' 'libglvnd')
+provides=('secgram')
+source=("https://github.com/voidsecurity404/secgram/releases/download/v${pkgver}/SecGram-${pkgver}-linux-x86_64.tar.xz")
+sha256sums=('SKIP')
+
+package() {
+	cd "$srcdir/SecGram"
+	install -Dm755 SecGram "$pkgdir/opt/secgram/SecGram"
+	install -Dm755 secgram "$pkgdir/usr/bin/secgram"
+	install -Dm644 secgram.desktop "$pkgdir/usr/share/applications/secgram.desktop"
+	install -Dm644 secgram.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/secgram.svg"
+}

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=SecGram
+GenericName=Secure Telegram client
+Comment=Telegram Desktop with security tools for SOC / CERT
+Exec=secgram -- %u
+Icon=secgram
+Terminal=false
+Type=Application
+Categories=Chat;Network;InstantMessaging;Qt;
+MimeType=x-scheme-handler/tg;
+Keywords=telegram;security;soc;messenger;
+StartupWMClass=SecGram
