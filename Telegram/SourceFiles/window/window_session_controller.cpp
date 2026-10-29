@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_session_controller.h"
 
+#include "secgram/secgram_updater.h"
+
 #include "apiwrap.h"
 #include "api/api_cloud_password.h"
 #include "api/api_text_entities.h"
@@ -1811,6 +1813,8 @@ SessionController::SessionController(
 		}).send();
 	});
 #endif
+
+	SecGram::CheckForUpdatesLater(this);
 }
 
 bool SessionController::skipNonPremiumLimitToast(bool download) const {

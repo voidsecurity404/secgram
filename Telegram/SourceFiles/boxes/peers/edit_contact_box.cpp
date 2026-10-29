@@ -784,7 +784,7 @@ void Controller::setupSharePhoneNumber() {
 		object_ptr<Ui::Checkbox>(
 			_box,
 			tr::lng_contact_share_phone(tr::now),
-			true,
+			false, // SecGram: never share the phone number by default.
 			st::defaultBoxCheckbox),
 		st::addContactWarningMargin);
 	_box->addRow(

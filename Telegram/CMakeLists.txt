@@ -2001,6 +2001,8 @@ PRIVATE
     secgram/secgram_people.h
     secgram/secgram_tools.cpp
     secgram/secgram_tools.h
+    secgram/secgram_updater.cpp
+    secgram/secgram_updater.h
     secgram/secgram_ui.cpp
     secgram/secgram_ui.h
     settings/sections/settings_shortcuts.cpp

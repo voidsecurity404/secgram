@@ -102,6 +102,10 @@ jobs:
           API_HASH: ${{ secrets.API_HASH }}
         run: |
           echo "ARTIFACT_NAME=SecGram-linux" >> $GITHUB_ENV
+          case "$GITHUB_REF_NAME" in v[0-9]*)
+            sed -i "s/kVersion = \"[^\"]*\"/kVersion = \"${GITHUB_REF_NAME#v}\"/" \
+              Telegram/SourceFiles/secgram/secgram_updater.h;;
+          esac
           ccache -z
           docker run --rm \
           -u $(id -u) \

@@ -71,3 +71,6 @@ SPEC
 rpmbuild --define "_topdir $RPM" -bb "$RPM/SPECS/secgram.spec"
 cp "$RPM"/RPMS/*/*.rpm "$OUT/"
 ls -la "$OUT"
+
+# Checksums: the in-app updater refuses files that do not match.
+(cd "$OUT" && sha256sum -- *.tar.xz *.deb *.rpm > SHA256SUMS.txt)

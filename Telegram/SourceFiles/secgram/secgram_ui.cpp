@@ -6,6 +6,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "secgram/secgram_ui.h"
 
+#include "secgram/secgram_updater.h"
+
 #include "secgram/secgram_account.h"
 
 #include "secgram/secgram_files.h"
@@ -35,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_item_components.h"
+#include "history/history_item_reply_markup.h"
 #include "history/view/history_view_context_menu.h"
 #include "history/view/history_view_list_widget.h"
 #include "lang/lang_keys.h"
@@ -62,6 +65,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QFileInfo>
 #include <QtCore/QDir>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QStandardPaths>
@@ -1106,6 +1110,82 @@ void MessageInfoBox(
 			add(u"Инлайн-режим бота"_q, info->inlinePlaceholder);
 		}
 	}
+	// Inline bot buttons hide where they lead: show it.
+	if (const auto markup = item->Get<HistoryMessageReplyMarkup>()) {
+		using Type = HistoryMessageMarkupButton::Type;
+		auto index = 0;
+		auto buttons = QJsonArray();
+		for (const auto &row : markup->data.rows) {
+			for (const auto &button : row) {
+				++index;
+				auto target = QString();
+				auto kind = QString();
+				switch (button.type) {
+				case Type::Url:
+				case Type::Auth:
+					kind = u"ссылка"_q;
+					target = QString::fromUtf8(button.data);
+					break;
+				case Type::WebView:
+				case Type::SimpleWebView:
+					kind = u"мини-приложение"_q;
+					target = QString::fromUtf8(button.data);
+					break;
+				case Type::Callback:
+				case Type::CallbackWithPassword:
+					kind = u"callback"_q;
+					target = QString::fromUtf8(button.data);
+					if (target.isEmpty() || !target.isValidUtf16()) {
+						target = u"hex:"_q + QString::fromLatin1(button.data.toHex());
+					}
+					break;
+				case Type::CopyText:
+					kind = u"копирует текст"_q;
+					target = QString::fromUtf8(button.data);
+					break;
+				case Type::RequestPhone:
+					kind = u"⚠ запрашивает ваш номер телефона"_q;
+					break;
+				case Type::RequestLocation:
+					kind = u"⚠ запрашивает ваше местоположение"_q;
+					break;
+				default:
+					break;
+				}
+				if (kind.isEmpty()) {
+					continue;
+				}
+				auto value = u"«%1» — %2"_q.arg(button.text, kind);
+				if (!target.isEmpty()) {
+					value += u": "_q + target.left(300);
+					if (target.contains(u"://"_q)) {
+						value += u"  "_q + Verdict(AnalyzeUrl(target));
+					}
+				}
+				add(u"Кнопка %1"_q.arg(index), value);
+				buttons.push_back(QJsonObject{
+					{ u"text"_q, button.text },
+					{ u"kind"_q, kind },
+					{ u"target"_q, target },
+				});
+			}
+		}
+		if (!buttons.isEmpty()) {
+			json.insert(u"buttons"_q, buttons);
+		}
+	}
+	if (const auto media = item->media()) {
+		const auto document = media->document();
+		const auto sticker = document ? document->sticker() : nullptr;
+		// Since 2021 a sticker set id keeps its creator id in the high bits.
+		if (sticker && (sticker->set.id >> 32)) {
+			const auto owner = QString::number(sticker->set.id >> 32);
+			add(
+				u"Создатель набора стикеров"_q,
+				u"вероятно, пользователь ID "_q + owner);
+			json.insert(u"sticker_set_owner_id"_q, owner);
+		}
+	}
 	if (item->hasDirectLink()) {
 		const auto link = item->history()->session().api()
 			.exportDirectMessageLink(item, false);
@@ -1340,7 +1420,10 @@ bool InterceptFileLaunch(const QString &path, Fn<void()> launch) {
 	constexpr auto kLaunchContainerLimit = qint64(64 * 1024 * 1024);
 	auto container = ContainerReport();
 	if (QFileInfo(path).size() <= kLaunchContainerLimit
-		&& (head.startsWith("PK\x03\x04") || head.startsWith("%PDF"))) {
+		&& (head.startsWith("PK\x03\x04")
+			|| head.startsWith("%PDF")
+			|| head.startsWith("MZ")
+			|| head.startsWith("\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"))) {
 		if (auto file = QFile(path); file.open(QIODevice::ReadOnly)) {
 			container = AnalyzeContainer(file.readAll());
 		}
@@ -1411,6 +1494,16 @@ void SettingsBox(
 	box->setWidth(st::boxWideWidth);
 	const auto container = box->verticalLayout();
 
+	Settings::AddButtonWithLabel(
+		container,
+		rpl::single(u"Проверить обновления"_q),
+		rpl::single(QString::fromLatin1(kVersion)),
+		st::settingsButton,
+		{ &st::menuIconRestore }
+	)->setClickedCallback([=] {
+		controller->showToast(u"Проверка обновлений…"_q);
+		CheckForUpdatesNow(controller);
+	});
 	Settings::AddButtonWithIcon(
 		container,
 		rpl::single(u"Аудит безопасности аккаунта"_q),

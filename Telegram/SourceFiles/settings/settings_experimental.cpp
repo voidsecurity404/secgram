@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "secgram/secgram_intel.h"
 #include "secgram/secgram_people.h"
 #include "secgram/secgram_ui.h"
+#include "secgram/secgram_updater.h"
 
 #include "settings/settings_common.h"
 #include "data/components/passkeys.h"
@@ -393,6 +394,7 @@ void SetupExperimental(
 		{
 			u"Безопасность SecGram"_q,
 			{
+				SecGram::kOptionUpdateCheck,
 				SecGram::kOptionNewLoginAlert,
 				SecGram::kOptionLoginCodeGuard,
 				SecGram::kOptionLinkGuard,
