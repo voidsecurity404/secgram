@@ -63,6 +63,7 @@ optionsList = [
     'qt6',
     'skip-release',
     'skip-breakpad', # SecGram: crash reports are disabled.
+    'skip-debug', # SecGram: only Release libraries, about half the time.
     'build-stackwalk',
     'qt-asserts',
 ]
@@ -329,6 +330,12 @@ def filterByPlatform(commands):
                 dependencies.append(pattern)
             else:
                 command = command.strip()
+                if 'skip-debug' in options:
+                    if re.search(r'--config\s+Debug\b|Configuration=Debug\b', command):
+                        continue
+                    command = command.replace(
+                        'CONFIGURATIONS=-debug-and-release',
+                        'CONFIGURATIONS=-release')
                 if len(command) > 0:
                     result = result + command + '\n'
     return [result, dependencies, version]
