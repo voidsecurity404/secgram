@@ -1,10 +1,21 @@
 name: Linux
 
 on:
+  # Builds on main fill the caches: GitHub only shares caches from the
+  # default branch, a cache saved by one tag is invisible to the next.
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/windows.yml'
   workflow_dispatch:
+
+concurrency:
+  group: linux-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: write
